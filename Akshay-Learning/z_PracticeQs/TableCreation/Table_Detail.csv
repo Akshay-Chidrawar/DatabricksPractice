@@ -1,0 +1,6 @@
+Table_Name,Column_Name,Data_Type
+Employee,EID,Int
+Employee,Ename,Varchar(50)
+Employee,DID,Int
+Department,DID,Int
+Department,Dname,Varchar(50)
