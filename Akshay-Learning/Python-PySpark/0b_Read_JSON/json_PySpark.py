@@ -24,7 +24,8 @@
 
 # COMMAND ----------
 
-directory = '/Volumes/workspace/default/managed_volume/ManishKumar/'
+# DBTITLE 1,Initialize
+directory = '/Volumes/workspace/default/sample_data/ManishKumar/'
 
 from pyspark.sql.functions import *
 from pyspark.sql.types import *
@@ -103,6 +104,37 @@ df.show()
 
 # COMMAND ----------
 
+# DBTITLE 1,Schema of json_data
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType
+
+# StructType --> list of individual StructField
+# StructField --> dict
+# 
+
+json_schema = StructType([
+    StructField("first_name", StringType(), True),
+    StructField("listings", ArrayType(
+        StructType([
+            StructField("description", StringType(), True),
+            StructField("listing_id", StringType(), True),
+            StructField("place", StructType([
+                StructField("Area", StringType(), True),
+                StructField("City", StringType(), True)
+            ]), True),
+            StructField("services", ArrayType(
+                StructType([
+                    StructField("service_id", StringType(), True),
+                    StructField("service_provider", StringType(), True),
+                    StructField("service_type", StringType(), True)
+                ])
+            ), True)
+        ])
+    ), True),
+    StructField("user_id", StringType(), True)
+])
+
+# COMMAND ----------
+
 # DBTITLE 1,PySpark
 payload = spark.read.format('json')\
     .options(header=True
@@ -111,7 +143,8 @@ payload = spark.read.format('json')\
              ,mode='permissive')\
     .load(directory+'json_data.json')
 
-# payload.printSchema()
+# you can use schema = json_schema instead of inferSchema=True, which infers schema manually (consumes time & resources).
+
 payload = payload.select("user_id","first_name","listings")
 payload.display()
 
@@ -158,55 +191,3 @@ full_data = user_properties_services_relator\
     .select('user_id','first_name','Property_id','description','place_Area','place_City','Service_id','Service_type','Service_provider')\
     .orderBy('user_id','Property_id','Service_id')
 full_data.display()
-
-# COMMAND ----------
-
-# DBTITLE 1,Spark SQL
-#sample json string for schema inference
-json_string = '{"user_id":"0001","first_name":"Akshay","listings": [{"listing_id":"847254","place": {"Area":"Naupada","City":"Thane"},"description":"apartment","services":[{"service_id":"BG111","service_type":"CookingGas","service_provider":"BharatGas"},{"service_id":"MV111","service_type":"Electricity","service_provider":"Mahavitaran"}]},{"listing_id":"435543","place": {"Area":"ShivajiNagar","City":"Pune"},"description":"vila","services":[{"service_id":"HG111","service_type":"CookingGas","service_provider":"HidustanGas"},{"service_id":"RL111","service_type":"Electricity","service_provider":"Reliance"}]}]}'
-
-spark.sql(f"""
-        create or replace temporary view vw_json_data_with_schema_identified as
-        select  *
-                ,_metadata.file_modification_time AS file_modification_time -- file modification time
-                ,_metadata.file_name AS source_file -- Ingestion data source file name
-                ,current_timestamp() as ingestion_time  -- Ingestion timestamp
-        from    read_files('{directory}json_data.json'
-                ,format=>'json'
-                ,schema=>schema_of_json('{json_string}')
-                ,multiLine=>'true'
-                )
-        """)
-#if you want to include a "rescued_data_column", add below line to read_files() clause:
-# rescueddatacolumn => '_rescued_data'
-
-spark.sql("""select * from vw_json_data_with_schema_identified""").display()
-
-spark.sql(
-    """
-    create or replace temporary view vw_full_data as
-    select  * except (services_exploded)
-            ,services_exploded.service_id as service_id
-            ,services_exploded.service_provider as service_provider
-            ,services_exploded.service_type as service_type
-    from    (
-            select  * except (listings_exploded)
-                    ,listings_exploded.listing_id as Property_id
-                    ,listings_exploded.description as description
-                    ,listings_exploded.place.Area as place_Area
-                    ,listings_exploded.place.City as place_City
-                    ,explode(listings_exploded.services) as services_exploded
-            from    (
-                        select  * except(listings)
-                                ,explode(listings) as listings_exploded
-                        from  vw_json_data_with_schema_identified
-                    )t1
-            )t2
-    order by user_id, Property_id, service_id
-    """)
-
-spark.sql(f"""
-          select user_id,first_name,Property_id,description,place_Area,place_City,Service_id,Service_type,Service_provider
-          from vw_full_data
-          """).display()
-

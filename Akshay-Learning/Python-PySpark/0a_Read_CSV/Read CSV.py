@@ -2,20 +2,20 @@
 # MAGIC %md
 # MAGIC # spark.read (DataFrameReader API)
 # MAGIC
-# MAGIC ## **OPTIONAL PARAMETERS:**
+# MAGIC ## **OPTIONAL PARAMETERS**:
 # MAGIC
 # MAGIC ### .format() 
-# MAGIC - Default is parquet. 
+# MAGIC - Default is **parquet**. 
 # MAGIC - Also supports csv, json, JDBC/ ODBC (table), etc. 
 # MAGIC
 # MAGIC ### .option("key","value") OR .options("key1"="value1","key2"="value2")
 # MAGIC - pass key value pairs. Examples:
 # MAGIC - inferschema (default false --> All columns inferred as String).
 # MAGIC - header (default false --> First row also considered as part of data, not column header).
-# MAGIC - Mode 
-# MAGIC   1. permissive --> (default) allows corrupted data and set them as NULL.  
-# MAGIC   2. dropmalformed --> drop corrupted data and continue operation.
-# MAGIC   3. Failfast --> terminate operation as soon as corrupted data encountered.
+# MAGIC - **Mode** 
+# MAGIC   1. **permissive** --> (default) allows corrupted data and set them as NULL.  
+# MAGIC   2. **dropmalformed** --> drop corrupted data and continue operation.
+# MAGIC   3. **Failfast** --> terminate operation as soon as corrupted data encountered.
 # MAGIC
 # MAGIC ### .schema() 
 # MAGIC - user can provide custom schema here for Spark to apply this custom schema on the data.
